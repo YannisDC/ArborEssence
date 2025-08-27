@@ -5,6 +5,8 @@
 ## User settings
 xcuserdata/
 
+.swiftpm/
+
 ## Obj-C/Swift specific
 *.hmap
 
