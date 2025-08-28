@@ -39,3 +39,29 @@ import Testing
     #expect(result == "Hello")
     #expect(position == input.index(input.startIndex, offsetBy: 5))
 }
+
+@Test func nestedMatchFails() async throws {
+    let input = "Hello Plant!"
+    var position = input.startIndex
+    let debugger = RightMostFailureParserDebugger()
+
+    debugger.reset()
+    let result = TestingGrammar().parseHelloWorldOrPlanet(input, position: &position, debugger: debugger)
+    debugger.printTree()
+    
+    #expect(result == nil)
+    #expect(position == input.index(input.startIndex, offsetBy: 6))
+}
+
+@Test func doubleNestedMatch() async throws {
+    let input = "Hello You"
+    var position = input.startIndex
+    let debugger = RightMostFailureParserDebugger()
+
+    debugger.reset()
+    let result = TestingGrammar().parseHelloWorldPlanetOrYou(input, position: &position, debugger: debugger)
+    debugger.printTree()
+    
+    #expect(result == "Hello You")
+    #expect(position == input.index(input.startIndex, offsetBy: 9))
+}

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+@testable import ArborEssence
 
 public class TestingGrammar {
     public func parseLetter(_ letter: Character, _ input: String, position: inout String.Index, debugger: ParserDebugging) -> String? {
@@ -106,6 +107,96 @@ public class TestingGrammar {
             position = input.index(after: position)
             return result
         }
+    }
+    
+    public typealias Parser = (_ input: String, _ position: inout String.Index, _ debugger: ParserDebugging) -> String?
+    
+    public func parseAnd(
+        _ label: String,
+        parsers: [Parser],
+        _ input: String,
+        position: inout String.Index,
+        debugger: ParserDebugging
+    ) -> String? {
+        return debug(label, input: input, position: &position, debugger: debugger, operationType: .and) { position in
+            var result = ""
+            for parser in parsers {
+                guard let part = parser(input, &position, debugger) else {
+                    return nil
+                }
+                result += part
+            }
+            return result
+        }
+    }
+
+    public func parseOr(
+        _ label: String,
+        parsers: [Parser],
+        _ input: String,
+        position: inout String.Index,
+        debugger: ParserDebugging
+    ) -> String? {
+        return debug(label, input: input, position: &position, debugger: debugger, operationType: .or) { position in
+            for parser in parsers {
+                if let result = parser(input, &position, debugger) {
+                    return result
+                }
+            }
+            return nil
+        }
+    }
+    
+    public func parseHelloWorldOrPlanet(
+        _ input: String,
+        position: inout String.Index,
+        debugger: ParserDebugging
+    ) -> String? {
+        return parseAnd(
+            "Hello (World! / Planet!)",
+            parsers: [
+                { TestingGrammar.literalMatch("Hello ", caseSensitive: true, $0, position: &$1, debugger: $2) },
+                { self.parseOr("World! or Planet!",
+                    parsers: [
+                        { TestingGrammar.literalMatch("World!", caseSensitive: true, $0, position: &$1, debugger: $2) },
+                        { TestingGrammar.literalMatch("Planet!", caseSensitive: true, $0, position: &$1, debugger: $2) }
+                    ],
+                    $0, position: &$1, debugger: $2)
+                }
+            ],
+            input,
+            position: &position,
+            debugger: debugger
+        )
+    }
+    
+    public func parseHelloWorldPlanetOrYou(
+        _ input: String,
+        position: inout String.Index,
+        debugger: ParserDebugging
+    ) -> String? {
+        return parseAnd(
+            "Hello ((World! / Planet!) / You)",
+            parsers: [
+                { TestingGrammar.literalMatch("Hello ", caseSensitive: true, $0, position: &$1, debugger: $2) },
+                { self.parseOr("((World! / Planet!) / You)",
+                    parsers: [
+                        { self.parseOr("(World! / Planet!)",
+                            parsers: [
+                                { TestingGrammar.literalMatch("World!", caseSensitive: true, $0, position: &$1, debugger: $2) },
+                                { TestingGrammar.literalMatch("Planet!", caseSensitive: true, $0, position: &$1, debugger: $2) }
+                            ],
+                            $0, position: &$1, debugger: $2)
+                        },
+                        { TestingGrammar.literalMatch("You", caseSensitive: true, $0, position: &$1, debugger: $2) }
+                    ],
+                    $0, position: &$1, debugger: $2)
+                }
+            ],
+            input,
+            position: &position,
+            debugger: debugger
+        )
     }
 }
 
